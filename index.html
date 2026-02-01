@@ -173,18 +173,18 @@
             box-shadow: 0 4px 15px rgba(0,0,0,0.4);
         }
         
-        /* 按钮区 */
+        /* 按钮区 - 四个按钮 */
         .buttons-section {
             display: flex;
-            gap: 24px;
+            gap: 20px;
         }
         
         .btn {
             flex: 1;
-            padding: 36px 24px;
+            padding: 36px 16px;
             border: none;
             border-radius: 20px;
-            font-size: 40px;
+            font-size: 36px;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -215,6 +215,18 @@
         
         .btn-reset {
             background: linear-gradient(145deg, #ef4444, #dc2626);
+        }
+        
+        .btn-speed {
+            background: linear-gradient(145deg, #8b5cf6, #7c3aed);
+        }
+        
+        .btn-speed.speed-5x {
+            background: linear-gradient(145deg, #f97316, #ea580c);
+        }
+        
+        .btn-speed.speed-10x {
+            background: linear-gradient(145deg, #ec4899, #db2777);
         }
         
         /* 统计面板 */
@@ -396,11 +408,12 @@
             </div>
         </div>
         
-        <!-- 控制按钮 -->
+        <!-- 控制按钮 - 四个 -->
         <div class="buttons-section">
             <button class="btn btn-run" id="runBtn" onclick="toggleRun()">▶ 运行</button>
             <button class="btn btn-step" onclick="singleStep()">⏭ 单步</button>
             <button class="btn btn-reset" onclick="resetGrid()">🔄 重置</button>
+            <button class="btn btn-speed" id="speedBtn" onclick="toggleSpeed()">⚡ 1×</button>
         </div>
         
         <!-- 实时统计 -->
@@ -464,10 +477,20 @@
         const CELL_SIZE = 9;
         const EMPTY_RATIO = 0.1;
         
-        // 速度控制参数
-        const FRAME_INTERVAL = 80;      // 帧间隔(ms)，越大越慢
-        const MOVES_PER_STEP = 0.15;    // 每步移动的不满意住户比例，越小越慢
-        const MIN_MOVES = 5;            // 每步最少移动数量
+        // 基础速度控制参数
+        const BASE_FRAME_INTERVAL = 80;
+        const BASE_MOVES_RATIO = 0.15;
+        const BASE_MIN_MOVES = 5;
+        
+        // 速度档位配置: [帧间隔, 移动比例, 最小移动数, 每帧步数]
+        const SPEED_CONFIGS = {
+            1:  { interval: 80, movesRatio: 0.15, minMoves: 5,  stepsPerFrame: 1 },
+            5:  { interval: 40, movesRatio: 0.25, minMoves: 15, stepsPerFrame: 2 },
+            10: { interval: 20, movesRatio: 0.35, minMoves: 30, stepsPerFrame: 3 }
+        };
+        
+        // 当前速度倍率
+        let speedMultiplier = 1;
         
         // 状态变量
         let grid = [];
@@ -618,6 +641,7 @@
         
         // 执行一步模拟
         function simulateStep() {
+            const config = SPEED_CONFIGS[speedMultiplier];
             const emptyCells = findEmptyCells();
             if (emptyCells.length === 0) return false;
             
@@ -642,10 +666,10 @@
                 [unhappyAgents[i], unhappyAgents[j]] = [unhappyAgents[j], unhappyAgents[i]];
             }
             
-            // 减慢收敛速度：每步只移动较少的智能体
+            // 根据当前速度档位决定移动数量
             const movedCount = Math.min(
                 unhappyAgents.length, 
-                Math.max(MIN_MOVES, Math.floor(unhappyAgents.length * MOVES_PER_STEP))
+                Math.max(config.minMoves, Math.floor(unhappyAgents.length * config.movesRatio))
             );
             const availableEmpty = [...emptyCells];
             
@@ -665,6 +689,28 @@
             document.getElementById('steps').textContent = steps.toLocaleString();
             
             return unhappyAgents.length > 0;
+        }
+        
+        // 切换速度
+        function toggleSpeed() {
+            const btn = document.getElementById('speedBtn');
+            
+            if (speedMultiplier === 1) {
+                speedMultiplier = 5;
+                btn.textContent = '⚡ 5×';
+                btn.classList.remove('speed-10x');
+                btn.classList.add('speed-5x');
+            } else if (speedMultiplier === 5) {
+                speedMultiplier = 10;
+                btn.textContent = '⚡ 10×';
+                btn.classList.remove('speed-5x');
+                btn.classList.add('speed-10x');
+            } else {
+                speedMultiplier = 1;
+                btn.textContent = '⚡ 1×';
+                btn.classList.remove('speed-5x');
+                btn.classList.remove('speed-10x');
+            }
         }
         
         // 切换运行状态
@@ -692,29 +738,34 @@
             }
         }
         
-        // 运行模拟循环 - 使用setTimeout控制速度
+        // 运行模拟循环
         function runSimulation() {
             if (!isRunning) return;
             
-            const hasUnhappy = simulateStep();
-            if (!hasUnhappy) {
-                isRunning = false;
-                const btn = document.getElementById('runBtn');
-                btn.textContent = '▶ 运行';
-                btn.classList.remove('running');
-                if (timerInterval) {
-                    clearInterval(timerInterval);
+            const config = SPEED_CONFIGS[speedMultiplier];
+            
+            // 根据速度档位执行多步
+            for (let s = 0; s < config.stepsPerFrame; s++) {
+                const hasUnhappy = simulateStep();
+                if (!hasUnhappy) {
+                    isRunning = false;
+                    const btn = document.getElementById('runBtn');
+                    btn.textContent = '▶ 运行';
+                    btn.classList.remove('running');
+                    if (timerInterval) {
+                        clearInterval(timerInterval);
+                    }
+                    renderGrid();
+                    calculateMetrics();
+                    return;
                 }
-                renderGrid();
-                calculateMetrics();
-                return;
             }
             
             renderGrid();
             calculateMetrics();
             
-            // 使用setTimeout控制帧率，实现更慢的迭代速度
-            animationId = setTimeout(runSimulation, FRAME_INTERVAL);
+            // 根据当前速度档位设置帧间隔
+            animationId = setTimeout(runSimulation, config.interval);
         }
         
         // 更新计时器
