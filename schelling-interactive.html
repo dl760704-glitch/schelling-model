@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>谢林隔离模型 - 交互式仿真</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        
+        body {
+            font-family: 'Microsoft YaHei', 'Segoe UI', sans-serif;
+            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        
+        .container {
+            background: #8B0000;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+            max-width: 700px;
+            width: 100%;
+        }
+        
+        h1 {
+            color: white;
+            text-align: center;
+            font-size: 26px;
+            margin-bottom: 8px;
+            font-weight: bold;
+        }
+        
+        .subtitle {
+            color: #e0e0e0;
+            text-align: center;
+            font-size: 13px;
+            margin-bottom: 20px;
+        }
+        
+        .control-panel {
+            background: #6B0000;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 16px;
+        }
+        
+        .threshold-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+        
+        .threshold-label {
+            color: white;
+            font-size: 14px;
+        }
+        
+        .threshold-value {
+            color: #FFD700;
+            font-size: 20px;
+            font-weight: bold;
+        }
+        
+        .slider-container {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        
+        .slider-btn {
+            background: #555;
+            color: white;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 6px;
+            font-size: 20px;
+            cursor: pointer;
+            transition: background 0.2s;
+        }
+        
+        .slider-btn:hover {
+            background: #777;
+        }
+        
+        input[type="range"] {
+            flex: 1;
+            height: 8px;
+            border-radius: 4px;
+            background: #888;
+            outline: none;
+            -webkit-appearance: none;
+        }
+        
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            background: #4a90d9;
+            cursor: pointer;
+        }
+        
+        .grid-container {
+            background: #F5F5DC;
+            padding: 8px;
+            border-radius: 12px;
+            margin-bottom: 16px;
+            display: flex;
+            justify-content: center;
+        }
+        
+        #grid {
+            display: grid;
+            gap: 0;
+        }
+        
+        .cell {
+            transition: background-color 0.1s;
+        }
+        
+        .buttons {
+            display: flex;
+            gap: 12px;
+            margin-bottom: 16px;
+        }
+        
+        .btn {
+            flex: 1;
+            padding: 12px 16px;
+            border: none;
+            border-radius: 8px;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+            color: white;
+        }
+        
+        .btn-run {
+            background: #22c55e;
+        }
+        
+        .btn-run:hover {
+            background: #16a34a;
+        }
+        
+        .btn-run.running {
+            background: #eab308;
+        }
+        
+        .btn-run.running:hover {
+            background: #ca8a04;
+        }
+        
+        .btn-step {
+            background: #3b82f6;
+        }
+        
+        .btn-step:hover {
+            background: #2563eb;
+        }
+        
+        .btn-reset {
+            background: #ef4444;
+        }
+        
+        .btn-reset:hover {
+            background: #dc2626;
+        }
+        
+        .stats {
+            background: #6B0000;
+            border-radius: 12px;
+            padding: 16px;
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 16px;
+        }
+        
+        .stat-item {
+            text-align: center;
+        }
+        
+        .stat-label {
+            color: #ccc;
+            font-size: 11px;
+            margin-bottom: 4px;
+        }
+        
+        .stat-value {
+            color: white;
+            font-size: 22px;
+            font-weight: bold;
+        }
+        
+        .stat-value.yellow {
+            color: #FFD700;
+        }
+        
+        .stat-value.green {
+            color: #4ade80;
+        }
+        
+        .legend {
+            margin-top: 16px;
+            display: flex;
+            justify-content: center;
+            gap: 32px;
+        }
+        
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            border-radius: 4px;
+        }
+        
+        .legend-color.red {
+            background: #DC2626;
+        }
+        
+        .legend-color.blue {
+            background: #1E3A5F;
+        }
+        
+        .legend-color.empty {
+            background: #F5F5DC;
+            border: 1px solid #999;
+        }
+        
+        .legend-text {
+            color: white;
+            font-size: 13px;
+        }
+        
+        .info-panel {
+            background: #FFFACD;
+            border-radius: 12px;
+            padding: 16px;
+            margin-top: 16px;
+        }
+        
+        .info-title {
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 8px;
+            font-size: 15px;
+        }
+        
+        .info-text {
+            color: #555;
+            font-size: 13px;
+            line-height: 1.6;
+        }
+        
+        @media (max-width: 600px) {
+            .stats {
+                grid-template-columns: repeat(2, 1fr);
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>谢林隔离模型 (Schelling Segregation)</h1>
+        <p class="subtitle">基于 Thomas C. Schelling (1978) 微观动机与宏观行为理论</p>
+        
+        <div class="control-panel">
+            <div class="threshold-header">
+                <span class="threshold-label">同种族邻居偏好阈值:</span>
+                <span class="threshold-value" id="thresholdDisplay">50%</span>
+            </div>
+            <div class="slider-container">
+                <button class="slider-btn" onclick="adjustThreshold(-5)">−</button>
+                <input type="range" id="threshold" min="0" max="100" value="50" oninput="updateThreshold(this.value)">
+                <button class="slider-btn" onclick="adjustThreshold(5)">+</button>
+            </div>
+        </div>
+        
+        <div class="grid-container">
+            <div id="grid"></div>
+        </div>
+        
+        <div class="buttons">
+            <button class="btn btn-run" id="runBtn" onclick="toggleRun()">▶ 运行</button>
+            <button class="btn btn-step" onclick="singleStep()">⏭ 单步</button>
+            <button class="btn btn-reset" onclick="resetGrid()">🔄 重置</button>
+        </div>
+        
+        <div class="stats">
+            <div class="stat-item">
+                <div class="stat-label">迭代步数</div>
+                <div class="stat-value" id="steps">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">运行时间</div>
+                <div class="stat-value" id="time">0.0秒</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">不满意住户</div>
+                <div class="stat-value yellow" id="unhappy">0</div>
+            </div>
+            <div class="stat-item">
+                <div class="stat-label">隔离指数</div>
+                <div class="stat-value green" id="segregation">0%</div>
+            </div>
+        </div>
+        
+        <div class="legend">
+            <div class="legend-item">
+                <div class="legend-color red"></div>
+                <span class="legend-text">群体 A</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color blue"></div>
+                <span class="legend-text">群体 B</span>
+            </div>
+            <div class="legend-item">
+                <div class="legend-color empty"></div>
+                <span class="legend-text">空置</span>
+            </div>
+        </div>
+        
+        <div class="info-panel">
+            <div class="info-title">模型说明</div>
+            <p class="info-text">
+                谢林隔离模型展示了即使个体仅有轻微的同类偏好（如30%），宏观层面仍会演化出高度隔离的空间格局。
+                每个住户检查周围8个邻居中同类占比，若低于设定阈值则随机迁移至空位。
+                这一发现揭示了微观动机与宏观结果之间的非线性涌现机制。
+            </p>
+        </div>
+    </div>
+
+    <script>
+        // 配置参数
+        const GRID_SIZE = 50;
+        const CELL_SIZE = 10;
+        const EMPTY_RATIO = 0.1;
+        
+        // 状态变量
+        let grid = [];
+        let threshold = 0.5;
+        let isRunning = false;
+        let steps = 0;
+        let startTime = null;
+        let animationId = null;
+        let timerInterval = null;
+        
+        // 初始化网格
+        function initGrid() {
+            grid = [];
+            for (let i = 0; i < GRID_SIZE; i++) {
+                const row = [];
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const rand = Math.random();
+                    if (rand < EMPTY_RATIO) {
+                        row.push(0);
+                    } else if (rand < (1 + EMPTY_RATIO) / 2) {
+                        row.push(1);
+                    } else {
+                        row.push(2);
+                    }
+                }
+                grid.push(row);
+            }
+        }
+        
+        // 渲染网格
+        function renderGrid() {
+            const gridEl = document.getElementById('grid');
+            gridEl.innerHTML = '';
+            gridEl.style.gridTemplateColumns = `repeat(${GRID_SIZE}, ${CELL_SIZE}px)`;
+            gridEl.style.width = `${GRID_SIZE * CELL_SIZE}px`;
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'cell';
+                    cell.style.width = `${CELL_SIZE}px`;
+                    cell.style.height = `${CELL_SIZE}px`;
+                    cell.style.backgroundColor = getCellColor(grid[i][j]);
+                    cell.dataset.row = i;
+                    cell.dataset.col = j;
+                    gridEl.appendChild(cell);
+                }
+            }
+        }
+        
+        // 更新单个格子颜色
+        function updateCell(row, col) {
+            const index = row * GRID_SIZE + col;
+            const gridEl = document.getElementById('grid');
+            const cell = gridEl.children[index];
+            if (cell) {
+                cell.style.backgroundColor = getCellColor(grid[row][col]);
+            }
+        }
+        
+        // 获取格子颜色
+        function getCellColor(value) {
+            switch (value) {
+                case 1: return '#DC2626';
+                case 2: return '#1E3A5F';
+                default: return '#F5F5DC';
+            }
+        }
+        
+        // 计算同类邻居比例
+        function getSameTypeRatio(row, col) {
+            const type = grid[row][col];
+            if (type === 0) return 1;
+            
+            let sameCount = 0;
+            let totalNeighbors = 0;
+            
+            for (let i = -1; i <= 1; i++) {
+                for (let j = -1; j <= 1; j++) {
+                    if (i === 0 && j === 0) continue;
+                    const newRow = row + i;
+                    const newCol = col + j;
+                    if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE) {
+                        const neighbor = grid[newRow][newCol];
+                        if (neighbor !== 0) {
+                            totalNeighbors++;
+                            if (neighbor === type) {
+                                sameCount++;
+                            }
+                        }
+                    }
+                }
+            }
+            
+            return totalNeighbors === 0 ? 1 : sameCount / totalNeighbors;
+        }
+        
+        // 计算统计指标
+        function calculateMetrics() {
+            let unhappy = 0;
+            let totalSameRatio = 0;
+            let agentCount = 0;
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (grid[i][j] !== 0) {
+                        const ratio = getSameTypeRatio(i, j);
+                        totalSameRatio += ratio;
+                        agentCount++;
+                        if (ratio < threshold) {
+                            unhappy++;
+                        }
+                    }
+                }
+            }
+            
+            document.getElementById('unhappy').textContent = unhappy;
+            document.getElementById('segregation').textContent = 
+                (agentCount > 0 ? (totalSameRatio / agentCount * 100).toFixed(1) : 0) + '%';
+            
+            return unhappy;
+        }
+        
+        // 找到所有空位
+        function findEmptyCells() {
+            const emptyCells = [];
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (grid[i][j] === 0) {
+                        emptyCells.push({ row: i, col: j });
+                    }
+                }
+            }
+            return emptyCells;
+        }
+        
+        // 执行一步模拟
+        function simulateStep() {
+            const emptyCells = findEmptyCells();
+            if (emptyCells.length === 0) return false;
+            
+            const unhappyAgents = [];
+            
+            for (let i = 0; i < GRID_SIZE; i++) {
+                for (let j = 0; j < GRID_SIZE; j++) {
+                    if (grid[i][j] !== 0) {
+                        const ratio = getSameTypeRatio(i, j);
+                        if (ratio < threshold) {
+                            unhappyAgents.push({ row: i, col: j, type: grid[i][j] });
+                        }
+                    }
+                }
+            }
+            
+            if (unhappyAgents.length === 0) return false;
+            
+            // 随机打乱
+            for (let i = unhappyAgents.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [unhappyAgents[i], unhappyAgents[j]] = [unhappyAgents[j], unhappyAgents[i]];
+            }
+            
+            const movedCount = Math.min(unhappyAgents.length, Math.max(1, Math.floor(unhappyAgents.length * 0.3)));
+            const availableEmpty = [...emptyCells];
+            const changedCells = [];
+            
+            for (let i = 0; i < movedCount && availableEmpty.length > 0; i++) {
+                const agent = unhappyAgents[i];
+                const emptyIndex = Math.floor(Math.random() * availableEmpty.length);
+                const emptyCell = availableEmpty[emptyIndex];
+                
+                grid[emptyCell.row][emptyCell.col] = agent.type;
+                grid[agent.row][agent.col] = 0;
+                
+                changedCells.push({ row: emptyCell.row, col: emptyCell.col });
+                changedCells.push({ row: agent.row, col: agent.col });
+                
+                availableEmpty.splice(emptyIndex, 1);
+                availableEmpty.push({ row: agent.row, col: agent.col });
+            }
+            
+            // 更新变化的格子
+            changedCells.forEach(cell => updateCell(cell.row, cell.col));
+            
+            steps++;
+            document.getElementById('steps').textContent = steps.toLocaleString();
+            calculateMetrics();
+            
+            return unhappyAgents.length > 0;
+        }
+        
+        // 切换运行状态
+        function toggleRun() {
+            isRunning = !isRunning;
+            const btn = document.getElementById('runBtn');
+            
+            if (isRunning) {
+                btn.textContent = '⏸ 暂停';
+                btn.classList.add('running');
+                if (!startTime) {
+                    startTime = Date.now();
+                }
+                timerInterval = setInterval(updateTimer, 100);
+                runSimulation();
+            } else {
+                btn.textContent = '▶ 运行';
+                btn.classList.remove('running');
+                if (animationId) {
+                    cancelAnimationFrame(animationId);
+                }
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+            }
+        }
+        
+        // 运行模拟循环
+        function runSimulation() {
+            if (!isRunning) return;
+            
+            const hasUnhappy = simulateStep();
+            if (!hasUnhappy) {
+                isRunning = false;
+                const btn = document.getElementById('runBtn');
+                btn.textContent = '▶ 运行';
+                btn.classList.remove('running');
+                if (timerInterval) {
+                    clearInterval(timerInterval);
+                }
+                return;
+            }
+            
+            animationId = requestAnimationFrame(() => {
+                setTimeout(runSimulation, 30);
+            });
+        }
+        
+        // 更新计时器
+        function updateTimer() {
+            if (startTime) {
+                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
+                document.getElementById('time').textContent = elapsed + '秒';
+            }
+        }
+        
+        // 单步执行
+        function singleStep() {
+            if (isRunning) {
+                toggleRun();
+            }
+            if (!startTime) {
+                startTime = Date.now();
+            }
+            simulateStep();
+            updateTimer();
+        }
+        
+        // 重置网格
+        function resetGrid() {
+            if (isRunning) {
+                toggleRun();
+            }
+            initGrid();
+            renderGrid();
+            steps = 0;
+            startTime = null;
+            document.getElementById('steps').textContent = '0';
+            document.getElementById('time').textContent = '0.0秒';
+            calculateMetrics();
+        }
+        
+        // 更新阈值
+        function updateThreshold(value) {
+            threshold = value / 100;
+            document.getElementById('thresholdDisplay').textContent = value + '%';
+            document.getElementById('threshold').value = value;
+            calculateMetrics();
+        }
+        
+        // 调整阈值
+        function adjustThreshold(delta) {
+            let newValue = Math.round(threshold * 100) + delta;
+            newValue = Math.max(0, Math.min(100, newValue));
+            updateThreshold(newValue);
+        }
+        
+        // 初始化
+        window.onload = function() {
+            initGrid();
+            renderGrid();
+            calculateMetrics();
+        };
+    </script>
+</body>
+</html>
