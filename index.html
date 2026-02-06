@@ -1,831 +1,669 @@
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=3840, height=2160">
-    <title>谢林隔离模型 - 4K交互式仿真</title>
-    <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        
-        html, body {
-            width: 3840px;
-            height: 2160px;
-            overflow: hidden;
-        }
-        
-        body {
-            font-family: 'Microsoft YaHei', 'PingFang SC', 'Segoe UI', sans-serif;
-            background: linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f0f23 100%);
-            display: flex;
-            padding: 40px;
-            gap: 40px;
-        }
-        
-        /* 左侧矩阵区域 - 占3/5 */
-        .left-panel {
-            width: 60%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            background: linear-gradient(145deg, #8B0000 0%, #6B0000 100%);
-            border-radius: 24px;
-            padding: 40px;
-            box-shadow: 0 20px 80px rgba(0,0,0,0.5);
-        }
-        
-        .matrix-title {
-            color: white;
-            font-size: 52px;
-            font-weight: bold;
-            margin-bottom: 30px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.3);
-        }
-        
-        .grid-wrapper {
-            background: #F5F5DC;
-            padding: 16px;
-            border-radius: 16px;
-            box-shadow: inset 0 4px 20px rgba(0,0,0,0.2);
-        }
-        
-        #grid {
-            display: grid;
-            gap: 0;
-        }
-        
-        .cell {
-            transition: background-color 0.05s;
-        }
-        
-        /* 右侧控制面板区域 - 占2/5 */
-        .right-panel {
-            width: 40%;
-            height: 100%;
-            display: flex;
-            flex-direction: column;
-            gap: 28px;
-        }
-        
-        /* 标题区 */
-        .header-section {
-            background: linear-gradient(145deg, #8B0000 0%, #6B0000 100%);
-            border-radius: 24px;
-            padding: 50px;
-            text-align: center;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        }
-        
-        .header-section h1 {
-            color: white;
-            font-size: 72px;
-            font-weight: bold;
-            margin-bottom: 20px;
-        }
-        
-        .header-section .subtitle {
-            color: #e0e0e0;
-            font-size: 32px;
-        }
-        
-        /* 控制面板 */
-        .control-section {
-            background: linear-gradient(145deg, #2d2d44 0%, #1e1e2e 100%);
-            border-radius: 24px;
-            padding: 50px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        }
-        
-        .control-title {
-            color: #FFD700;
-            font-size: 42px;
-            font-weight: bold;
-            margin-bottom: 36px;
-        }
-        
-        .threshold-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 30px;
-        }
-        
-        .threshold-label {
-            color: white;
-            font-size: 36px;
-        }
-        
-        .threshold-value {
-            color: #FFD700;
-            font-size: 64px;
-            font-weight: bold;
-        }
-        
-        .slider-container {
-            display: flex;
-            align-items: center;
-            gap: 24px;
-        }
-        
-        .slider-btn {
-            background: linear-gradient(145deg, #4a4a6a, #3a3a5a);
-            color: white;
-            border: none;
-            width: 90px;
-            height: 90px;
-            border-radius: 16px;
-            font-size: 48px;
-            cursor: pointer;
-            transition: all 0.2s;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.3);
-        }
-        
-        .slider-btn:hover {
-            background: linear-gradient(145deg, #5a5a7a, #4a4a6a);
-            transform: translateY(-2px);
-        }
-        
-        .slider-btn:active {
-            transform: translateY(0);
-        }
-        
-        input[type="range"] {
-            flex: 1;
-            height: 20px;
-            border-radius: 10px;
-            background: #555;
-            outline: none;
-            -webkit-appearance: none;
-        }
-        
-        input[type="range"]::-webkit-slider-thumb {
-            -webkit-appearance: none;
-            width: 50px;
-            height: 50px;
-            border-radius: 50%;
-            background: linear-gradient(145deg, #5a9ade, #3a7abe);
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
-        }
-        
-        /* 按钮区 - 四个按钮 */
-        .buttons-section {
-            display: flex;
-            gap: 20px;
-        }
-        
-        .btn {
-            flex: 1;
-            padding: 36px 16px;
-            border: none;
-            border-radius: 20px;
-            font-size: 36px;
-            font-weight: bold;
-            cursor: pointer;
-            transition: all 0.2s;
-            color: white;
-            box-shadow: 0 6px 20px rgba(0,0,0,0.3);
-        }
-        
-        .btn:hover {
-            transform: translateY(-3px);
-            box-shadow: 0 10px 30px rgba(0,0,0,0.4);
-        }
-        
-        .btn:active {
-            transform: translateY(0);
-        }
-        
-        .btn-run {
-            background: linear-gradient(145deg, #22c55e, #16a34a);
-        }
-        
-        .btn-run.running {
-            background: linear-gradient(145deg, #eab308, #ca8a04);
-        }
-        
-        .btn-step {
-            background: linear-gradient(145deg, #3b82f6, #2563eb);
-        }
-        
-        .btn-reset {
-            background: linear-gradient(145deg, #ef4444, #dc2626);
-        }
-        
-        .btn-speed {
-            background: linear-gradient(145deg, #8b5cf6, #7c3aed);
-        }
-        
-        .btn-speed.speed-5x {
-            background: linear-gradient(145deg, #f97316, #ea580c);
-        }
-        
-        .btn-speed.speed-10x {
-            background: linear-gradient(145deg, #ec4899, #db2777);
-        }
-        
-        /* 统计面板 */
-        .stats-section {
-            background: linear-gradient(145deg, #2d2d44 0%, #1e1e2e 100%);
-            border-radius: 24px;
-            padding: 50px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-            flex: 1;
-        }
-        
-        .stats-title {
-            color: #4ade80;
-            font-size: 42px;
-            font-weight: bold;
-            margin-bottom: 36px;
-        }
-        
-        .stats-grid {
-            display: grid;
-            grid-template-columns: repeat(2, 1fr);
-            gap: 36px;
-            height: calc(100% - 80px);
-        }
-        
-        .stat-card {
-            background: linear-gradient(145deg, #3a3a5a, #2a2a4a);
-            border-radius: 20px;
-            padding: 36px;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-        }
-        
-        .stat-label {
-            color: #aaa;
-            font-size: 32px;
-            margin-bottom: 16px;
-        }
-        
-        .stat-value {
-            color: white;
-            font-size: 64px;
-            font-weight: bold;
-        }
-        
-        .stat-value.yellow {
-            color: #FFD700;
-        }
-        
-        .stat-value.green {
-            color: #4ade80;
-        }
-        
-        .stat-value.cyan {
-            color: #22d3ee;
-        }
-        
-        /* 图例 */
-        .legend-section {
-            background: linear-gradient(145deg, #2d2d44 0%, #1e1e2e 100%);
-            border-radius: 24px;
-            padding: 40px 50px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-        }
-        
-        .legend-row {
-            display: flex;
-            justify-content: space-around;
-            align-items: center;
-        }
-        
-        .legend-item {
-            display: flex;
-            align-items: center;
-            gap: 20px;
-        }
-        
-        .legend-color {
-            width: 50px;
-            height: 50px;
-            border-radius: 10px;
-        }
-        
-        .legend-color.red {
-            background: #DC2626;
-        }
-        
-        .legend-color.blue {
-            background: #1E3A5F;
-        }
-        
-        .legend-color.empty {
-            background: #F5F5DC;
-            border: 2px solid #999;
-        }
-        
-        .legend-text {
-            color: white;
-            font-size: 34px;
-        }
-        
-        /* 说明面板 - 缩小高度 */
-        .info-section {
-            background: linear-gradient(145deg, #FFFACD 0%, #F5F5DC 100%);
-            border-radius: 24px;
-            padding: 40px 50px;
-            box-shadow: 0 10px 40px rgba(0,0,0,0.4);
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-        }
-        
-        .info-title {
-            color: #333;
-            font-size: 40px;
-            font-weight: bold;
-            margin-bottom: 24px;
-        }
-        
-        .info-content {
-            display: flex;
-            flex-direction: column;
-            justify-content: space-between;
-            flex: 1;
-        }
-        
-        .info-text {
-            color: #333;
-            font-size: 34px;
-            line-height: 1.7;
-        }
-        
-        .info-highlight {
-            background: rgba(139, 0, 0, 0.12);
-            padding: 28px 32px;
-            border-radius: 16px;
-            border-left: 8px solid #8B0000;
-            margin-top: 20px;
-        }
-        
-        .info-highlight p {
-            color: #6B0000;
-            font-size: 32px;
-            font-weight: 600;
-            line-height: 1.6;
-        }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>谢林区隔模型 · Schelling Segregation Model</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body {
+    background: #1a1a2e;
+    color: #e0e0e0;
+    font-family: 'Noto Sans SC', 'Microsoft YaHei', 'PingFang SC', sans-serif;
+    overflow: hidden;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  #app {
+    display: flex;
+    height: 100vh;
+    width: 100vw;
+  }
+
+  /* ===== Left panel ===== */
+  #grid-panel {
+    flex: 0 0 60%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background: #16213e;
+    position: relative;
+    padding: 16px 20px;
+  }
+
+  #grid-title {
+    font-size: clamp(18px, 2.2vw, 34px);
+    font-weight: 700;
+    color: #e8d5b7;
+    margin-bottom: 6px;
+    letter-spacing: 3px;
+  }
+
+  #grid-subtitle {
+    font-size: clamp(11px, 1vw, 16px);
+    color: #8a8a9a;
+    margin-bottom: 12px;
+    letter-spacing: 1px;
+  }
+
+  #canvas-wrapper {
+    border: 3px solid #2a2a4a;
+    border-radius: 4px;
+    box-shadow: 0 0 40px rgba(0,0,0,0.5), inset 0 0 20px rgba(0,0,0,0.3);
+    line-height: 0;
+  }
+
+  canvas#grid {
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+  }
+
+  #step-bar {
+    margin-top: 12px;
+    display: flex;
+    align-items: center;
+    gap: 24px;
+    font-size: clamp(13px, 1.1vw, 20px);
+    color: #b0b0c0;
+  }
+  #step-bar .label { color: #7a7a9a; }
+  #step-bar .value { color: #f0c040; font-weight: 700; font-variant-numeric: tabular-nums; }
+
+  #converged-banner {
+    display: none;
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(46,204,113,0.92);
+    color: #1a1a2e;
+    font-size: clamp(14px, 1.3vw, 22px);
+    font-weight: 700;
+    padding: 10px 32px;
+    border-radius: 8px;
+    letter-spacing: 2px;
+    animation: pulse 1.5s infinite;
+  }
+  @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.7} }
+
+  /* ===== Right panel ===== */
+  #right-panel {
+    flex: 0 0 40%;
+    display: flex;
+    flex-direction: column;
+    background: linear-gradient(175deg, #1f1f3a 0%, #16213e 50%, #1a1a2e 100%);
+    padding: clamp(14px, 1.6vw, 28px);
+    overflow: hidden;
+  }
+
+  .card {
+    background: rgba(255,255,255,0.04);
+    border: 1px solid rgba(255,255,255,0.08);
+    border-radius: 12px;
+    padding: clamp(14px, 1.5vw, 28px);
+    margin-bottom: clamp(8px, 1vw, 16px);
+  }
+
+  .card-title {
+    font-size: clamp(15px, 1.4vw, 24px);
+    font-weight: 700;
+    color: #e8d5b7;
+    margin-bottom: clamp(10px, 1vw, 18px);
+    padding-bottom: 7px;
+    border-bottom: 1px solid rgba(232,213,183,0.15);
+    letter-spacing: 1px;
+  }
+
+  /* ===== Controls ===== */
+  .control-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: clamp(4px, 0.4vw, 6px);
+  }
+  .control-label { font-size: clamp(13px, 1.2vw, 20px); color: #b0b0c0; }
+  .control-value { font-size: clamp(15px, 1.4vw, 24px); font-weight: 700; color: #f0c040; min-width: 50px; text-align: right; font-variant-numeric: tabular-nums; }
+
+  input[type="range"] {
+    -webkit-appearance: none;
+    width: 100%;
+    height: 7px;
+    border-radius: 4px;
+    background: #2a2a4a;
+    outline: none;
+    margin: 8px 0 4px 0;
+  }
+  input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: clamp(16px, 1.5vw, 24px);
+    height: clamp(16px, 1.5vw, 24px);
+    border-radius: 50%;
+    background: #e8d5b7;
+    cursor: pointer;
+    box-shadow: 0 0 8px rgba(232,213,183,0.4);
+  }
+  input[type="range"]::-moz-range-thumb {
+    width: clamp(16px, 1.5vw, 24px);
+    height: clamp(16px, 1.5vw, 24px);
+    border-radius: 50%;
+    background: #e8d5b7;
+    cursor: pointer;
+    border: none;
+  }
+
+  .btn-row {
+    display: flex;
+    gap: clamp(5px, 0.5vw, 10px);
+    margin-top: clamp(10px, 1vw, 18px);
+  }
+
+  .btn {
+    flex: 1;
+    padding: clamp(9px, 0.9vw, 16px) 0;
+    border: none;
+    border-radius: 8px;
+    font-size: clamp(13px, 1.15vw, 19px);
+    font-weight: 600;
+    cursor: pointer;
+    transition: all 0.15s;
+    font-family: inherit;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+  }
+
+  .btn-start { background: #2ecc71; color: #1a1a2e; }
+  .btn-start:hover { background: #27ae60; }
+  .btn-start.running { background: #e67e22; }
+  .btn-start.running:hover { background: #d35400; }
+
+  .btn-reset { background: rgba(255,255,255,0.1); color: #e0e0e0; border: 1px solid rgba(255,255,255,0.15); }
+  .btn-reset:hover { background: rgba(255,255,255,0.18); }
+
+  .btn-step { background: rgba(100,149,237,0.25); color: #6495ed; border: 1px solid rgba(100,149,237,0.3); }
+  .btn-step:hover { background: rgba(100,149,237,0.4); }
+
+  .btn-speed { background: rgba(240,192,64,0.15); color: #f0c040; border: 1px solid rgba(240,192,64,0.3); min-width: 0; }
+  .btn-speed:hover { background: rgba(240,192,64,0.3); }
+  .btn-speed.active { background: rgba(240,192,64,0.35); box-shadow: 0 0 10px rgba(240,192,64,0.25); }
+
+  /* ===== Stats ===== */
+  .stat-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: clamp(8px, 0.9vw, 16px);
+  }
+  .stat-item {
+    background: rgba(255,255,255,0.03);
+    border-radius: 10px;
+    padding: clamp(12px, 1.2vw, 22px) clamp(8px, 0.8vw, 14px);
+    text-align: center;
+  }
+  .stat-num { font-size: clamp(22px, 2.2vw, 40px); font-weight: 700; font-variant-numeric: tabular-nums; line-height: 1.2; }
+  .stat-label { font-size: clamp(11px, 1vw, 16px); color: #7a7a9a; margin-top: 4px; }
+  .stat-steps .stat-num { color: #f0c040; }
+  .stat-time .stat-num { color: #3498db; }
+  .stat-unhappy .stat-num { color: #e74c3c; }
+  .stat-seg .stat-num { color: #9b59b6; }
+
+  /* Chart */
+  #chart-wrapper { width: 100%; height: clamp(70px, 7vw, 130px); margin-top: 8px; }
+  canvas#chart { width: 100%; height: 100%; border-radius: 6px; background: rgba(0,0,0,0.2); }
+
+  /* ===== Legend - horizontal ===== */
+  .legend-bar {
+    display: flex;
+    align-items: center;
+    justify-content: space-around;
+  }
+  .legend-item {
+    display: flex;
+    align-items: center;
+    gap: clamp(6px, 0.6vw, 12px);
+    font-size: clamp(13px, 1.15vw, 19px);
+  }
+  .legend-swatch {
+    width: clamp(18px, 1.5vw, 26px);
+    height: clamp(18px, 1.5vw, 26px);
+    border-radius: 4px;
+    flex-shrink: 0;
+  }
+
+  /* ===== Description - compact ===== */
+  #desc-card {
+    flex: 3;
+    display: flex;
+    flex-direction: column;
+    margin-bottom: 0;
+  }
+
+  /* Upper cards get more flex weight */
+  #ctrl-card { flex: 5; display: flex; flex-direction: column; }
+  #ctrl-card .card-inner { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  #stats-card { flex: 7; display: flex; flex-direction: column; }
+  #stats-card .card-inner { flex: 1; display: flex; flex-direction: column; justify-content: center; }
+  #legend-card { flex: 0 0 auto; }
+
+  #desc-card .desc-text {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    color: #c8c8d8;
+  }
+
+  #desc-card .desc-text p {
+    text-indent: 2em;
+    line-height: 1.85;
+  }
+
+  .highlight { color: #f0c040; font-weight: 500; }
+</style>
 </head>
 <body>
-    <!-- 左侧矩阵区域 -->
-    <div class="left-panel">
-        <div class="matrix-title">空间分布演化 (200 × 200)</div>
-        <div class="grid-wrapper">
-            <div id="grid"></div>
-        </div>
+<div id="app">
+
+  <!-- Left: Grid -->
+  <div id="grid-panel">
+    <div id="grid-title">谢林区隔模型</div>
+    <div id="grid-subtitle">Schelling Segregation Model · 200 × 200</div>
+    <div id="canvas-wrapper">
+      <canvas id="grid"></canvas>
     </div>
-    
-    <!-- 右侧控制面板区域 -->
-    <div class="right-panel">
-        <!-- 标题 -->
-        <div class="header-section">
-            <h1>谢林隔离模型</h1>
-            <p class="subtitle">Schelling Segregation Model</p>
+    <div id="step-bar">
+      <span><span class="label">迭代 </span><span class="value" id="info-steps">0</span></span>
+      <span><span class="label">搬迁 </span><span class="value" id="info-moves">0</span></span>
+      <span><span class="label">状态 </span><span class="value" id="info-status">就绪</span></span>
+    </div>
+    <div id="converged-banner">✓ 系统已收敛至稳态</div>
+  </div>
+
+  <!-- Right -->
+  <div id="right-panel">
+
+    <!-- Controls -->
+    <div class="card" id="ctrl-card">
+      <div class="card-title">⚙ 仿真控制</div>
+      <div class="card-inner">
+        <div class="control-row">
+          <span class="control-label">同族偏好阈值</span>
+          <span class="control-value" id="val-threshold">50%</span>
         </div>
-        
-        <!-- 控制面板 -->
-        <div class="control-section">
-            <div class="control-title">⚙️ 参数控制</div>
-            <div class="threshold-row">
-                <span class="threshold-label">同种族邻居偏好阈值</span>
-                <span class="threshold-value" id="thresholdDisplay">50%</span>
-            </div>
-            <div class="slider-container">
-                <button class="slider-btn" onclick="adjustThreshold(-5)">−</button>
-                <input type="range" id="threshold" min="0" max="100" value="50" oninput="updateThreshold(this.value)">
-                <button class="slider-btn" onclick="adjustThreshold(5)">+</button>
-            </div>
+        <input type="range" id="slider-threshold" min="0" max="100" value="50">
+
+        <div class="control-row" style="margin-top:10px;">
+          <span class="control-label">空置率</span>
+          <span class="control-value" id="val-empty">10%</span>
         </div>
-        
-        <!-- 控制按钮 - 四个 -->
-        <div class="buttons-section">
-            <button class="btn btn-run" id="runBtn" onclick="toggleRun()">▶ 运行</button>
-            <button class="btn btn-step" onclick="singleStep()">⏭ 单步</button>
-            <button class="btn btn-reset" onclick="resetGrid()">🔄 重置</button>
-            <button class="btn btn-speed" id="speedBtn" onclick="toggleSpeed()">⚡ 1×</button>
+        <input type="range" id="slider-empty" min="5" max="40" value="10">
+
+        <div class="btn-row">
+          <button class="btn btn-start" id="btn-start" onclick="toggleRun()">▶ 启动</button>
+          <button class="btn btn-step" onclick="stepOnce()">⏭ 单步</button>
+          <button class="btn btn-reset" onclick="resetModel()">↻ 重置</button>
+          <button class="btn btn-speed" id="btn-speed" onclick="cycleSpeed()">1×</button>
         </div>
-        
-        <!-- 实时统计 -->
-        <div class="stats-section">
-            <div class="stats-title">📊 实时统计</div>
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-label">迭代步数</div>
-                    <div class="stat-value cyan" id="steps">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">运行时间</div>
-                    <div class="stat-value" id="time">0.0秒</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">不满意住户</div>
-                    <div class="stat-value yellow" id="unhappy">0</div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-label">隔离指数</div>
-                    <div class="stat-value green" id="segregation">0%</div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 图例 -->
-        <div class="legend-section">
-            <div class="legend-row">
-                <div class="legend-item">
-                    <div class="legend-color red"></div>
-                    <span class="legend-text">群体 A</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color blue"></div>
-                    <span class="legend-text">群体 B</span>
-                </div>
-                <div class="legend-item">
-                    <div class="legend-color empty"></div>
-                    <span class="legend-text">空置单元</span>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 模型说明 -->
-        <div class="info-section">
-            <div class="info-title">📖 模型说明</div>
-            <div class="info-content">
-                <p class="info-text">
-                    谢林隔离模型由诺贝尔经济学奖得主Thomas Schelling于1971年提出。每个智能体检视其摩尔邻域内同类占比，若低于偏好阈值则随机迁移。
-                </p>
-                <div class="info-highlight">
-                    <p>核心发现：即使30%的温和偏好，系统仍将演化为高度隔离格局。</p>
-                </div>
-            </div>
-        </div>
+      </div>
     </div>
 
-    <script>
-        // 配置参数 - 200x200矩阵
-        const GRID_SIZE = 200;
-        const CELL_SIZE = 9;
-        const EMPTY_RATIO = 0.1;
-        
-        // 基础速度控制参数
-        const BASE_FRAME_INTERVAL = 80;
-        const BASE_MOVES_RATIO = 0.15;
-        const BASE_MIN_MOVES = 5;
-        
-        // 速度档位配置: [帧间隔, 移动比例, 最小移动数, 每帧步数]
-        const SPEED_CONFIGS = {
-            1:  { interval: 80, movesRatio: 0.15, minMoves: 5,  stepsPerFrame: 1 },
-            5:  { interval: 40, movesRatio: 0.25, minMoves: 15, stepsPerFrame: 2 },
-            10: { interval: 20, movesRatio: 0.35, minMoves: 30, stepsPerFrame: 3 }
-        };
-        
-        // 当前速度倍率
-        let speedMultiplier = 1;
-        
-        // 状态变量
-        let grid = [];
-        let threshold = 0.5;
-        let isRunning = false;
-        let steps = 0;
-        let startTime = null;
-        let animationId = null;
-        let timerInterval = null;
-        
-        // Canvas
-        let canvas, ctx;
-        
-        // 初始化Canvas
-        function initCanvas() {
-            const gridEl = document.getElementById('grid');
-            gridEl.innerHTML = '';
-            
-            canvas = document.createElement('canvas');
-            canvas.width = GRID_SIZE * CELL_SIZE;
-            canvas.height = GRID_SIZE * CELL_SIZE;
-            canvas.style.display = 'block';
-            gridEl.appendChild(canvas);
-            ctx = canvas.getContext('2d');
+    <!-- Stats -->
+    <div class="card" id="stats-card">
+      <div class="card-title">📊 实时统计</div>
+      <div class="card-inner">
+        <div class="stat-grid">
+          <div class="stat-item stat-steps"><div class="stat-num" id="stat-steps">0</div><div class="stat-label">迭代步数</div></div>
+          <div class="stat-item stat-time"><div class="stat-num" id="stat-time">00:00</div><div class="stat-label">运行时间</div></div>
+          <div class="stat-item stat-unhappy"><div class="stat-num" id="stat-unhappy">0</div><div class="stat-label">不满意住户</div></div>
+          <div class="stat-item stat-seg"><div class="stat-num" id="stat-seg">50.0%</div><div class="stat-label">隔离指数</div></div>
+        </div>
+        <div id="chart-wrapper"><canvas id="chart"></canvas></div>
+      </div>
+    </div>
+
+    <!-- Legend -->
+    <div class="card" id="legend-card" style="padding-top:clamp(10px,1vw,16px);padding-bottom:clamp(10px,1vw,16px);">
+      <div class="legend-bar">
+        <div class="legend-item"><div class="legend-swatch" style="background:#e74c3c;"></div><span>族群 A</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#2c3e50;"></div><span>族群 B</span></div>
+        <div class="legend-item"><div class="legend-swatch" style="background:#f5f0dc;"></div><span>空置</span></div>
+      </div>
+    </div>
+
+    <!-- Description -->
+    <div class="card" id="desc-card">
+      <div class="card-title">📖 模型说明</div>
+      <div class="desc-text" id="desc-text">
+        <p>Schelling Thomas C. Schelling 于 1971 年提出的区隔模型揭示了一个深刻的社会涌现机制：<span class="highlight">即使个体仅持有温和的同质性偏好，群体层面也会自发演化出高度隔离的空间格局</span>。</p>
+        <p>每个智能体检查Moore邻域中同族比例，若低于偏好阈值则随机迁移至空置位置。系统持续演化直至所有智能体均满意（稳态收敛）。阈值 30%~50% 即可观测到显著的自组织隔离现象。</p>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+// ====== CONFIG ======
+const N = 200;
+const COLORS = { 0:[245,240,220], 1:[231,76,60], 2:[44,62,80] };
+
+// ====== STATE ======
+let cells = new Uint8Array(N * N);
+let running = false, animId = null;
+let steps = 0, totalMoves = 0, lastMoves = 0, converged = false;
+let emptyList = [], unhappyHistory = [], segHistory = [];
+let startTime = null, elapsedMs = 0, lastFrameTime = 0;
+
+// Slow base: ~4 frames per iteration step at 1×
+const SPEED_LEVELS = [1, 5, 10, 20];
+let speedIdx = 0;
+let frameTick = 0;
+const BASE_FRAMES_PER_STEP = 4; // 1× means one step every 4 frames ≈ 15 steps/sec
+
+// ====== DOM ======
+const canvas = document.getElementById('grid');
+const ctx = canvas.getContext('2d');
+const chartCanvas = document.getElementById('chart');
+const chartCtx = chartCanvas.getContext('2d');
+
+// ====== SIZING ======
+function resize() {
+  const panel = document.getElementById('grid-panel');
+  const maxW = panel.clientWidth - 40;
+  const maxH = panel.clientHeight - 120;
+  const sz = Math.min(maxW, maxH);
+  const cellPx = Math.max(2, Math.floor(sz / N));
+  const canvasPx = cellPx * N;
+  canvas.width = canvasPx; canvas.height = canvasPx;
+  canvas.style.width = canvasPx + 'px'; canvas.style.height = canvasPx + 'px';
+  canvas.cellPx = cellPx;
+
+  const cw = chartCanvas.parentElement;
+  chartCanvas.width = cw.clientWidth * (window.devicePixelRatio || 1);
+  chartCanvas.height = cw.clientHeight * (window.devicePixelRatio || 1);
+
+  adjustDescFont();
+  drawGrid(); drawChart();
+}
+
+function adjustDescFont() {
+  const card = document.getElementById('desc-card');
+  const text = document.getElementById('desc-text');
+  const titleEl = card.querySelector('.card-title');
+  const cardH = card.clientHeight;
+  const titleH = titleEl.offsetHeight;
+  const style = getComputedStyle(card);
+  const padV = parseFloat(style.paddingTop) + parseFloat(style.paddingBottom);
+  const availH = cardH - titleH - padV - 8;
+  let lo = 10, hi = 36, best = 14;
+  for (let iter = 0; iter < 15; iter++) {
+    const mid = (lo + hi) / 2;
+    text.style.fontSize = mid + 'px';
+    if (text.scrollHeight <= availH) { best = mid; lo = mid + 0.5; }
+    else { hi = mid - 0.5; }
+  }
+  text.style.fontSize = best + 'px';
+}
+
+// ====== INIT ======
+function initModel() {
+  const emptyRate = parseInt(document.getElementById('slider-empty').value) / 100;
+  emptyList = [];
+  for (let i = 0; i < N * N; i++) {
+    const r = Math.random();
+    if (r < emptyRate) { cells[i] = 0; emptyList.push(i); }
+    else if (r < emptyRate + (1 - emptyRate) / 2) { cells[i] = 1; }
+    else { cells[i] = 2; }
+  }
+  steps = 0; totalMoves = 0; lastMoves = 0; converged = false;
+  unhappyHistory = []; segHistory = [];
+  startTime = null; elapsedMs = 0; frameTick = 0;
+  document.getElementById('converged-banner').style.display = 'none';
+}
+
+// ====== DRAW GRID ======
+function drawGrid() {
+  const px = canvas.cellPx || 2;
+  const imgData = ctx.createImageData(canvas.width, canvas.height);
+  const d = imgData.data;
+  for (let y = 0; y < N; y++) {
+    for (let x = 0; x < N; x++) {
+      const c = COLORS[cells[y * N + x]];
+      const sy = y * px, sx = x * px;
+      for (let dy = 0; dy < px; dy++) {
+        const rowOff = (sy + dy) * canvas.width;
+        for (let dx = 0; dx < px; dx++) {
+          const idx = (rowOff + sx + dx) * 4;
+          d[idx] = c[0]; d[idx+1] = c[1]; d[idx+2] = c[2]; d[idx+3] = 255;
         }
-        
-        // 初始化网格数据
-        function initGrid() {
-            grid = [];
-            for (let i = 0; i < GRID_SIZE; i++) {
-                const row = [];
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    const rand = Math.random();
-                    if (rand < EMPTY_RATIO) {
-                        row.push(0);
-                    } else if (rand < (1 + EMPTY_RATIO) / 2) {
-                        row.push(1);
-                    } else {
-                        row.push(2);
-                    }
-                }
-                grid.push(row);
-            }
-        }
-        
-        // 渲染整个网格
-        function renderGrid() {
-            const imageData = ctx.createImageData(GRID_SIZE * CELL_SIZE, GRID_SIZE * CELL_SIZE);
-            const data = imageData.data;
-            
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    const color = getCellColorRGB(grid[i][j]);
-                    
-                    for (let dy = 0; dy < CELL_SIZE; dy++) {
-                        for (let dx = 0; dx < CELL_SIZE; dx++) {
-                            const px = j * CELL_SIZE + dx;
-                            const py = i * CELL_SIZE + dy;
-                            const idx = (py * GRID_SIZE * CELL_SIZE + px) * 4;
-                            
-                            data[idx] = color.r;
-                            data[idx + 1] = color.g;
-                            data[idx + 2] = color.b;
-                            data[idx + 3] = 255;
-                        }
-                    }
-                }
-            }
-            
-            ctx.putImageData(imageData, 0, 0);
-        }
-        
-        // 获取RGB颜色
-        function getCellColorRGB(value) {
-            switch (value) {
-                case 1: return { r: 220, g: 38, b: 38 };
-                case 2: return { r: 30, g: 58, b: 95 };
-                default: return { r: 245, g: 245, b: 220 };
-            }
-        }
-        
-        // 计算同类邻居比例
-        function getSameTypeRatio(row, col) {
-            const type = grid[row][col];
-            if (type === 0) return 1;
-            
-            let sameCount = 0;
-            let totalNeighbors = 0;
-            
-            for (let i = -1; i <= 1; i++) {
-                for (let j = -1; j <= 1; j++) {
-                    if (i === 0 && j === 0) continue;
-                    const newRow = row + i;
-                    const newCol = col + j;
-                    if (newRow >= 0 && newRow < GRID_SIZE && newCol >= 0 && newCol < GRID_SIZE) {
-                        const neighbor = grid[newRow][newCol];
-                        if (neighbor !== 0) {
-                            totalNeighbors++;
-                            if (neighbor === type) {
-                                sameCount++;
-                            }
-                        }
-                    }
-                }
-            }
-            
-            return totalNeighbors === 0 ? 1 : sameCount / totalNeighbors;
-        }
-        
-        // 计算统计指标
-        function calculateMetrics() {
-            let unhappy = 0;
-            let totalSameRatio = 0;
-            let agentCount = 0;
-            
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    if (grid[i][j] !== 0) {
-                        const ratio = getSameTypeRatio(i, j);
-                        totalSameRatio += ratio;
-                        agentCount++;
-                        if (ratio < threshold) {
-                            unhappy++;
-                        }
-                    }
-                }
-            }
-            
-            document.getElementById('unhappy').textContent = unhappy.toLocaleString();
-            document.getElementById('segregation').textContent = 
-                (agentCount > 0 ? (totalSameRatio / agentCount * 100).toFixed(1) : 0) + '%';
-            
-            return unhappy;
-        }
-        
-        // 找到所有空位
-        function findEmptyCells() {
-            const emptyCells = [];
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    if (grid[i][j] === 0) {
-                        emptyCells.push({ row: i, col: j });
-                    }
-                }
-            }
-            return emptyCells;
-        }
-        
-        // 执行一步模拟
-        function simulateStep() {
-            const config = SPEED_CONFIGS[speedMultiplier];
-            const emptyCells = findEmptyCells();
-            if (emptyCells.length === 0) return false;
-            
-            const unhappyAgents = [];
-            
-            for (let i = 0; i < GRID_SIZE; i++) {
-                for (let j = 0; j < GRID_SIZE; j++) {
-                    if (grid[i][j] !== 0) {
-                        const ratio = getSameTypeRatio(i, j);
-                        if (ratio < threshold) {
-                            unhappyAgents.push({ row: i, col: j, type: grid[i][j] });
-                        }
-                    }
-                }
-            }
-            
-            if (unhappyAgents.length === 0) return false;
-            
-            // Fisher-Yates 洗牌
-            for (let i = unhappyAgents.length - 1; i > 0; i--) {
-                const j = Math.floor(Math.random() * (i + 1));
-                [unhappyAgents[i], unhappyAgents[j]] = [unhappyAgents[j], unhappyAgents[i]];
-            }
-            
-            // 根据当前速度档位决定移动数量
-            const movedCount = Math.min(
-                unhappyAgents.length, 
-                Math.max(config.minMoves, Math.floor(unhappyAgents.length * config.movesRatio))
-            );
-            const availableEmpty = [...emptyCells];
-            
-            for (let i = 0; i < movedCount && availableEmpty.length > 0; i++) {
-                const agent = unhappyAgents[i];
-                const emptyIndex = Math.floor(Math.random() * availableEmpty.length);
-                const emptyCell = availableEmpty[emptyIndex];
-                
-                grid[emptyCell.row][emptyCell.col] = agent.type;
-                grid[agent.row][agent.col] = 0;
-                
-                availableEmpty.splice(emptyIndex, 1);
-                availableEmpty.push({ row: agent.row, col: agent.col });
-            }
-            
-            steps++;
-            document.getElementById('steps').textContent = steps.toLocaleString();
-            
-            return unhappyAgents.length > 0;
-        }
-        
-        // 切换速度
-        function toggleSpeed() {
-            const btn = document.getElementById('speedBtn');
-            
-            if (speedMultiplier === 1) {
-                speedMultiplier = 5;
-                btn.textContent = '⚡ 5×';
-                btn.classList.remove('speed-10x');
-                btn.classList.add('speed-5x');
-            } else if (speedMultiplier === 5) {
-                speedMultiplier = 10;
-                btn.textContent = '⚡ 10×';
-                btn.classList.remove('speed-5x');
-                btn.classList.add('speed-10x');
-            } else {
-                speedMultiplier = 1;
-                btn.textContent = '⚡ 1×';
-                btn.classList.remove('speed-5x');
-                btn.classList.remove('speed-10x');
-            }
-        }
-        
-        // 切换运行状态
-        function toggleRun() {
-            isRunning = !isRunning;
-            const btn = document.getElementById('runBtn');
-            
-            if (isRunning) {
-                btn.textContent = '⏸ 暂停';
-                btn.classList.add('running');
-                if (!startTime) {
-                    startTime = Date.now();
-                }
-                timerInterval = setInterval(updateTimer, 100);
-                runSimulation();
-            } else {
-                btn.textContent = '▶ 运行';
-                btn.classList.remove('running');
-                if (animationId) {
-                    clearTimeout(animationId);
-                }
-                if (timerInterval) {
-                    clearInterval(timerInterval);
-                }
-            }
-        }
-        
-        // 运行模拟循环
-        function runSimulation() {
-            if (!isRunning) return;
-            
-            const config = SPEED_CONFIGS[speedMultiplier];
-            
-            // 根据速度档位执行多步
-            for (let s = 0; s < config.stepsPerFrame; s++) {
-                const hasUnhappy = simulateStep();
-                if (!hasUnhappy) {
-                    isRunning = false;
-                    const btn = document.getElementById('runBtn');
-                    btn.textContent = '▶ 运行';
-                    btn.classList.remove('running');
-                    if (timerInterval) {
-                        clearInterval(timerInterval);
-                    }
-                    renderGrid();
-                    calculateMetrics();
-                    return;
-                }
-            }
-            
-            renderGrid();
-            calculateMetrics();
-            
-            // 根据当前速度档位设置帧间隔
-            animationId = setTimeout(runSimulation, config.interval);
-        }
-        
-        // 更新计时器
-        function updateTimer() {
-            if (startTime) {
-                const elapsed = ((Date.now() - startTime) / 1000).toFixed(1);
-                document.getElementById('time').textContent = elapsed + '秒';
-            }
-        }
-        
-        // 单步执行
-        function singleStep() {
-            if (isRunning) {
-                toggleRun();
-            }
-            if (!startTime) {
-                startTime = Date.now();
-            }
-            simulateStep();
-            renderGrid();
-            calculateMetrics();
-            updateTimer();
-        }
-        
-        // 重置网格
-        function resetGrid() {
-            if (isRunning) {
-                toggleRun();
-            }
-            initGrid();
-            renderGrid();
-            steps = 0;
-            startTime = null;
-            document.getElementById('steps').textContent = '0';
-            document.getElementById('time').textContent = '0.0秒';
-            calculateMetrics();
-        }
-        
-        // 更新阈值
-        function updateThreshold(value) {
-            threshold = value / 100;
-            document.getElementById('thresholdDisplay').textContent = value + '%';
-            document.getElementById('threshold').value = value;
-            calculateMetrics();
-        }
-        
-        // 调整阈值
-        function adjustThreshold(delta) {
-            let newValue = Math.round(threshold * 100) + delta;
-            newValue = Math.max(0, Math.min(100, newValue));
-            updateThreshold(newValue);
-        }
-        
-        // 初始化
-        window.onload = function() {
-            initCanvas();
-            initGrid();
-            renderGrid();
-            calculateMetrics();
-        };
-    </script>
+      }
+    }
+  }
+  ctx.putImageData(imgData, 0, 0);
+}
+
+// ====== NEIGHBORS ======
+function getSameRatio(idx) {
+  const type = cells[idx];
+  if (type === 0) return 1;
+  const x = idx % N, y = (idx - x) / N;
+  let same = 0, total = 0;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      if (dy === 0 && dx === 0) continue;
+      const nx = x + dx, ny = y + dy;
+      if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
+      const n = cells[ny * N + nx];
+      if (n !== 0) { total++; if (n === type) same++; }
+    }
+  }
+  return total === 0 ? 1 : same / total;
+}
+
+// ====== STEP ======
+function stepModel() {
+  const threshold = parseInt(document.getElementById('slider-threshold').value) / 100;
+  let unhappy = [];
+  for (let i = 0; i < N * N; i++) {
+    if (cells[i] !== 0 && getSameRatio(i) < threshold) unhappy.push(i);
+  }
+  for (let i = unhappy.length - 1; i > 0; i--) {
+    const j = Math.random() * (i + 1) | 0;
+    [unhappy[i], unhappy[j]] = [unhappy[j], unhappy[i]];
+  }
+  let moves = 0;
+  for (const idx of unhappy) {
+    if (emptyList.length === 0) break;
+    const ei = Math.random() * emptyList.length | 0;
+    const target = emptyList[ei];
+    cells[target] = cells[idx]; cells[idx] = 0;
+    emptyList[ei] = idx; moves++;
+  }
+  steps++; totalMoves += moves; lastMoves = moves;
+  if (moves === 0) {
+    converged = true; running = false;
+    document.getElementById('converged-banner').style.display = 'block';
+    updateStartBtn();
+  }
+}
+
+// ====== STATS ======
+function computeStats() {
+  const threshold = parseInt(document.getElementById('slider-threshold').value) / 100;
+  let unhappyCount = 0, agents = 0, samePairs = 0, totalPairs = 0;
+  for (let i = 0; i < N * N; i++) {
+    if (cells[i] === 0) continue;
+    agents++;
+    if (getSameRatio(i) < threshold) unhappyCount++;
+    const x = i % N, y = (i - x) / N;
+    for (let dy = -1; dy <= 1; dy++) {
+      for (let dx = -1; dx <= 1; dx++) {
+        if (dy === 0 && dx === 0) continue;
+        const nx = x + dx, ny = y + dy;
+        if (nx < 0 || nx >= N || ny < 0 || ny >= N) continue;
+        const n = cells[ny * N + nx];
+        if (n !== 0) { totalPairs++; if (n === cells[i]) samePairs++; }
+      }
+    }
+  }
+  const segIdx = totalPairs > 0 ? samePairs / totalPairs * 100 : 50;
+  unhappyHistory.push(unhappyCount);
+  segHistory.push(segIdx);
+  if (unhappyHistory.length > 300) { unhappyHistory.shift(); segHistory.shift(); }
+  return { unhappyCount, segIdx, agents };
+}
+
+function formatTime(ms) {
+  const totalSec = Math.floor(ms / 1000);
+  const m = Math.floor(totalSec / 60);
+  const s = totalSec % 60;
+  return String(m).padStart(2, '0') + ':' + String(s).padStart(2, '0');
+}
+
+function updateUI(stats) {
+  document.getElementById('stat-steps').textContent = steps.toLocaleString();
+  document.getElementById('stat-time').textContent = formatTime(elapsedMs);
+  document.getElementById('stat-unhappy').textContent = stats.unhappyCount.toLocaleString();
+  document.getElementById('stat-seg').textContent = stats.segIdx.toFixed(1) + '%';
+  document.getElementById('info-steps').textContent = steps;
+  document.getElementById('info-moves').textContent = lastMoves.toLocaleString();
+  document.getElementById('info-status').textContent = converged ? '已收敛' : (running ? '运行中' : '已暂停');
+}
+
+// ====== CHART ======
+function drawChart() {
+  const c = chartCanvas, cx = chartCtx;
+  const w = c.width, h = c.height;
+  const dpr = window.devicePixelRatio || 1;
+  cx.clearRect(0, 0, w, h);
+  if (segHistory.length < 2) return;
+  const pad = 4 * dpr, plotW = w - pad * 2, plotH = h - pad * 2;
+  const len = segHistory.length;
+
+  // Unhappy count line (red) - normalize to max
+  const maxUnhappy = Math.max(...unhappyHistory, 1);
+  cx.beginPath(); cx.strokeStyle = 'rgba(231,76,60,0.9)'; cx.lineWidth = 1.5 * dpr;
+  for (let i = 0; i < len; i++) {
+    const x = pad + (i / (len - 1)) * plotW;
+    const y = pad + (1 - unhappyHistory[i] / maxUnhappy) * plotH;
+    i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
+  } cx.stroke();
+
+  // Segregation index line (purple)
+  cx.beginPath(); cx.strokeStyle = 'rgba(155,89,182,0.9)'; cx.lineWidth = 1.5 * dpr;
+  for (let i = 0; i < len; i++) {
+    const x = pad + (i / (len - 1)) * plotW;
+    const y = pad + (1 - segHistory[i] / 100) * plotH;
+    i === 0 ? cx.moveTo(x, y) : cx.lineTo(x, y);
+  } cx.stroke();
+
+  cx.font = `${10 * dpr}px sans-serif`;
+  cx.fillStyle = 'rgba(231,76,60,0.8)'; cx.fillText('不满意住户', pad, pad + 10 * dpr);
+  cx.fillStyle = 'rgba(155,89,182,0.8)'; cx.fillText('隔离指数', pad + 70 * dpr, pad + 10 * dpr);
+}
+
+// ====== SPEED ======
+function cycleSpeed() {
+  speedIdx = (speedIdx + 1) % SPEED_LEVELS.length;
+  const btn = document.getElementById('btn-speed');
+  btn.textContent = SPEED_LEVELS[speedIdx] + '×';
+  btn.classList.toggle('active', speedIdx > 0);
+}
+
+// ====== RUN LOOP ======
+function runLoop(ts) {
+  if (!running) return;
+
+  // Track elapsed time
+  if (!startTime) startTime = ts - elapsedMs;
+  elapsedMs = ts - startTime;
+
+  // Throttle: at 1× do 1 step every BASE_FRAMES_PER_STEP frames
+  const speed = SPEED_LEVELS[speedIdx];
+  frameTick++;
+
+  let didStep = false;
+  if (speed <= 1) {
+    // 1×: step once every BASE_FRAMES_PER_STEP frames
+    if (frameTick % BASE_FRAMES_PER_STEP === 0) {
+      stepModel();
+      didStep = true;
+    }
+  } else {
+    // Higher speeds: multiple steps per frame
+    const stepsPerFrame = Math.ceil(speed / BASE_FRAMES_PER_STEP) || 1;
+    for (let i = 0; i < stepsPerFrame; i++) {
+      if (converged) break;
+      stepModel();
+      didStep = true;
+    }
+  }
+
+  if (didStep) {
+    drawGrid();
+    const stats = computeStats();
+    updateUI(stats);
+    drawChart();
+  }
+
+  animId = requestAnimationFrame(runLoop);
+}
+
+// ====== CONTROLS ======
+function toggleRun() {
+  if (converged) return;
+  running = !running;
+  updateStartBtn();
+  if (running) {
+    document.getElementById('info-status').textContent = '运行中';
+    if (!startTime) startTime = null; // will be set on first frame
+    frameTick = 0;
+    animId = requestAnimationFrame(runLoop);
+  } else {
+    if (animId) cancelAnimationFrame(animId);
+    document.getElementById('info-status').textContent = '已暂停';
+  }
+}
+
+function updateStartBtn() {
+  const btn = document.getElementById('btn-start');
+  if (running) { btn.textContent = '⏸ 暂停'; btn.classList.add('running'); }
+  else { btn.textContent = '▶ 启动'; btn.classList.remove('running'); }
+}
+
+function stepOnce() {
+  if (converged) return;
+  if (running) { running = false; updateStartBtn(); if (animId) cancelAnimationFrame(animId); }
+  stepModel(); drawGrid();
+  const stats = computeStats(); updateUI(stats); drawChart();
+}
+
+function resetModel() {
+  running = false;
+  if (animId) cancelAnimationFrame(animId);
+  updateStartBtn();
+  speedIdx = 0;
+  document.getElementById('btn-speed').textContent = '1×';
+  document.getElementById('btn-speed').classList.remove('active');
+  initModel(); drawGrid();
+  const stats = computeStats(); updateUI(stats); drawChart();
+  document.getElementById('info-status').textContent = '就绪';
+}
+
+// ====== SLIDER EVENTS ======
+document.getElementById('slider-threshold').addEventListener('input', function() {
+  document.getElementById('val-threshold').textContent = this.value + '%';
+});
+document.getElementById('slider-empty').addEventListener('input', function() {
+  document.getElementById('val-empty').textContent = this.value + '%';
+});
+
+// ====== BOOT ======
+window.addEventListener('resize', resize);
+initModel(); resize();
+const initStats = computeStats(); updateUI(initStats);
+</script>
 </body>
 </html>
