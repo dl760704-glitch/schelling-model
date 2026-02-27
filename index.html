@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>谢林区隔模型 · Schelling Segregation Model</title>
+<title>谢林区隔模型 · Schelling Segregation Model · ABM</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
 
@@ -261,6 +261,38 @@
   }
 
   .highlight { color: #f0c040; font-weight: 500; }
+
+  /* Tick marks for slider */
+  .tick-row {
+    position: relative;
+    width: 100%;
+    height: clamp(18px, 1.6vw, 28px);
+    margin-top: 1px;
+    margin-bottom: 2px;
+  }
+  .tick-mark {
+    position: absolute;
+    transform: translateX(-50%);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+  .tick-line {
+    display: block;
+    width: 1px;
+    height: clamp(6px, 0.5vw, 10px);
+    background: rgba(232,213,183,0.4);
+  }
+  .tick-line.short {
+    height: clamp(4px, 0.35vw, 7px);
+    background: rgba(232,213,183,0.25);
+  }
+  .tick-label {
+    font-size: clamp(9px, 0.8vw, 13px);
+    color: #7a7a9a;
+    margin-top: 1px;
+    font-variant-numeric: tabular-nums;
+  }
 </style>
 </head>
 <body>
@@ -269,7 +301,7 @@
   <!-- Left: Grid -->
   <div id="grid-panel">
     <div id="grid-title">谢林区隔模型</div>
-    <div id="grid-subtitle">Schelling Segregation Model · 200 × 200</div>
+    <div id="grid-subtitle">Schelling Segregation Model · ABM · 200 × 200</div>
     <div id="canvas-wrapper">
       <canvas id="grid"></canvas>
     </div>
@@ -292,7 +324,18 @@
           <span class="control-label">同族偏好阈值</span>
           <span class="control-value" id="val-threshold">50%</span>
         </div>
-        <input type="range" id="slider-threshold" min="0" max="100" value="50">
+        <input type="range" id="slider-threshold" min="0" max="100" value="50" step="1">
+        <div class="tick-row" id="threshold-ticks">
+          <span class="tick-mark" style="left:0%"><span class="tick-line"></span><span class="tick-label">0</span></span>
+          <span class="tick-mark" style="left:12.5%"><span class="tick-line short"></span><span class="tick-label">⅛</span></span>
+          <span class="tick-mark" style="left:25%"><span class="tick-line"></span><span class="tick-label">¼</span></span>
+          <span class="tick-mark" style="left:37.5%"><span class="tick-line short"></span><span class="tick-label">⅜</span></span>
+          <span class="tick-mark" style="left:50%"><span class="tick-line"></span><span class="tick-label">½</span></span>
+          <span class="tick-mark" style="left:62.5%"><span class="tick-line short"></span><span class="tick-label">⅝</span></span>
+          <span class="tick-mark" style="left:75%"><span class="tick-line"></span><span class="tick-label">¾</span></span>
+          <span class="tick-mark" style="left:87.5%"><span class="tick-line short"></span><span class="tick-label">⅞</span></span>
+          <span class="tick-mark" style="left:100%"><span class="tick-line"></span><span class="tick-label">1</span></span>
+        </div>
 
         <div class="control-row" style="margin-top:10px;">
           <span class="control-label">空置率</span>
@@ -315,7 +358,7 @@
       <div class="card-inner">
         <div class="stat-grid">
           <div class="stat-item stat-steps"><div class="stat-num" id="stat-steps">0</div><div class="stat-label">迭代步数</div></div>
-          <div class="stat-item stat-time"><div class="stat-num" id="stat-time">00:00</div><div class="stat-label">运行时间</div></div>
+          <div class="stat-item stat-time"><div class="stat-num" id="stat-time">0</div><div class="stat-label">累计迁移</div></div>
           <div class="stat-item stat-unhappy"><div class="stat-num" id="stat-unhappy">0</div><div class="stat-label">不满意住户</div></div>
           <div class="stat-item stat-seg"><div class="stat-num" id="stat-seg">50.0%</div><div class="stat-label">隔离指数</div></div>
         </div>
@@ -336,8 +379,8 @@
     <div class="card" id="desc-card">
       <div class="card-title">📖 模型说明</div>
       <div class="desc-text" id="desc-text">
-        <p>Schelling Thomas C. Schelling 于 1971 年提出的区隔模型揭示了一个深刻的社会涌现机制：<span class="highlight">即使个体仅持有温和的同质性偏好，群体层面也会自发演化出高度隔离的空间格局</span>。</p>
-        <p>每个智能体检查Moore邻域中同族比例，若低于偏好阈值则随机迁移至空置位置。系统持续演化直至所有智能体均满意（稳态收敛）。阈值 30%~50% 即可观测到显著的自组织隔离现象。</p>
+        <p>本模型基于<span class="highlight">智能体建模（Agent-Based Modeling）</span>框架实现：每个智能体拥有独立的偏好阈值与决策规则，在八邻域中评估同族比例，若低于阈值则自主迁移至空置位置。宏观隔离格局由微观个体行为自发涌现。</p>
+        <p>社会涌现机制的深刻洞见：<span class="highlight">即使每个个体仅有温和的同质偏好（如 37%），系统仍会自组织演化出高度隔离的宏观格局</span>。微观理性与宏观涌现之间的非线性断裂，深刻揭示了集体行动困境。</p>
       </div>
     </div>
 
@@ -360,7 +403,7 @@ let startTime = null, elapsedMs = 0, lastFrameTime = 0;
 const SPEED_LEVELS = [1, 5, 10, 20];
 let speedIdx = 0;
 let frameTick = 0;
-const BASE_FRAMES_PER_STEP = 4; // 1× means one step every 4 frames ≈ 15 steps/sec
+const BASE_FRAMES_PER_STEP = 12; // 1× means one step every 12 frames ≈ 5 steps/sec
 
 // ====== DOM ======
 const canvas = document.getElementById('grid');
@@ -524,7 +567,7 @@ function formatTime(ms) {
 
 function updateUI(stats) {
   document.getElementById('stat-steps').textContent = steps.toLocaleString();
-  document.getElementById('stat-time').textContent = formatTime(elapsedMs);
+  document.getElementById('stat-time').textContent = totalMoves.toLocaleString();
   document.getElementById('stat-unhappy').textContent = stats.unhappyCount.toLocaleString();
   document.getElementById('stat-seg').textContent = stats.segIdx.toFixed(1) + '%';
   document.getElementById('info-steps').textContent = steps;
